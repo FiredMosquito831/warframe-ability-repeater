@@ -1,0 +1,154 @@
+import tkinter as tk
+from tkinter import ttk
+import keyboard
+import time
+import threading
+
+# Global variables
+is_paused = True  # Start in a paused state
+hotkey = '6'  # Default hotkey
+selected_keys = {'1': True, '2': True, '3': False, '4': True}  # Default selected keys
+delays = {'1': 30, '2': 30, '3': 30, '4': 48}  # Default delays in seconds
+last_press_times = {'1': 0, '2': 0, '3': 0, '4': 0}  # Track last press times
+
+def send_keys():
+    """Function to send the key presses with the specified intervals."""
+    global is_paused, last_press_times
+
+    while True:
+        if not is_paused:
+            current_time = time.time()
+
+            # Initial sequence: Send selected keys with their respective delays when resuming
+            if all(last_press_times[key] == 0 for key in selected_keys if selected_keys[key]):
+                for key in selected_keys:
+                    if selected_keys[key]:
+                        keyboard.send(key)
+                        last_press_times[key] = current_time
+                        time.sleep(0.6)  # Delay between initial key presses
+
+            # Regular intervals for selected keys
+            for key in selected_keys:
+                if selected_keys[key] and current_time - last_press_times[key] >= delays[key]:
+                    keyboard.send(key)
+                    last_press_times[key] = current_time
+
+        # Sleep briefly to avoid high CPU usage
+        time.sleep(0.1)
+
+def toggle_script(key):
+    """Toggle the script on/off when the hotkey is pressed."""
+    global is_paused, last_press_times
+
+    if key.name == hotkey:
+        is_paused = not is_paused  # Toggle the pause state
+        if is_paused:
+            status_label.config(text="Script Paused")
+            print("Script Paused")
+        else:
+            status_label.config(text="Script Resumed")
+            print("Script Resumed")
+            # Reset the timers when resuming
+            for key in last_press_times:
+                last_press_times[key] = 0
+
+def update_hotkey(new_hotkey):
+    """Update the hotkey for pausing/resuming the script."""
+    global hotkey
+    hotkey = new_hotkey
+    hotkey_label.config(text=f"Pause/Resume Hotkey: {hotkey}")
+    print(f"Hotkey updated to: {hotkey}")
+
+def update_selected_keys():
+    """Update the selected keys based on user input."""
+    global selected_keys
+    selected_keys = {
+        '1': key_1_var.get(),
+        '2': key_2_var.get(),
+        '3': key_3_var.get(),
+        '4': key_4_var.get()
+    }
+    print(f"Selected keys updated: {selected_keys}")
+
+def update_delays():
+    """Update the delays for each key based on user input."""
+    global delays
+    try:
+        delays['1'] = int(delay_1_entry.get())
+        delays['2'] = int(delay_2_entry.get())
+        delays['3'] = int(delay_3_entry.get())
+        delays['4'] = int(delay_4_entry.get())
+        print(f"Delays updated: {delays}")
+    except ValueError:
+        status_label.config(text="Invalid delay values!")
+        print("Invalid delay values!")
+
+def start_script():
+    """Start the key-sending process in a separate thread."""
+    threading.Thread(target=send_keys, daemon=True).start()
+    keyboard.on_press(toggle_script)
+    status_label.config(text="Script Running")
+    print("Script started.")
+
+# Create the main window
+root = tk.Tk()
+root.title("Warframe ability repeater by FiredMosquito83")
+
+# GUI Components
+# Hotkey selection
+hotkey_frame = ttk.Frame(root, padding=10)
+hotkey_frame.grid(row=0, column=0, sticky="w")
+ttk.Label(hotkey_frame, text="Set Pause/Resume Hotkey:").grid(row=0, column=0)
+hotkey_entry = ttk.Entry(hotkey_frame, width=5)
+hotkey_entry.grid(row=0, column=1)
+hotkey_entry.insert(0, hotkey)
+ttk.Button(hotkey_frame, text="Set", command=lambda: update_hotkey(hotkey_entry.get())).grid(row=0, column=2)
+hotkey_label = ttk.Label(hotkey_frame, text=f"Pause/Resume Hotkey: {hotkey}")
+hotkey_label.grid(row=1, column=0, columnspan=3)
+
+# Key selection
+keys_frame = ttk.Frame(root, padding=10)
+keys_frame.grid(row=1, column=0, sticky="w")
+ttk.Label(keys_frame, text="Select Keys to Repeat:").grid(row=0, column=0, columnspan=4)
+key_1_var = tk.BooleanVar(value=True)
+key_2_var = tk.BooleanVar(value=True)
+key_3_var = tk.BooleanVar(value=False)
+key_4_var = tk.BooleanVar(value=True)
+ttk.Checkbutton(keys_frame, text="1", variable=key_1_var).grid(row=1, column=0)
+ttk.Checkbutton(keys_frame, text="2", variable=key_2_var).grid(row=1, column=1)
+ttk.Checkbutton(keys_frame, text="3", variable=key_3_var).grid(row=1, column=2)
+ttk.Checkbutton(keys_frame, text="4", variable=key_4_var).grid(row=1, column=3)
+ttk.Button(keys_frame, text="Update Keys", command=update_selected_keys).grid(row=2, column=0, columnspan=4)
+
+# Delay settings
+delays_frame = ttk.Frame(root, padding=10)
+delays_frame.grid(row=2, column=0, sticky="w")
+ttk.Label(delays_frame, text="Set Delays (in seconds):").grid(row=0, column=0, columnspan=4)
+ttk.Label(delays_frame, text="1:").grid(row=1, column=0)
+delay_1_entry = ttk.Entry(delays_frame, width=5)
+delay_1_entry.grid(row=1, column=1)
+delay_1_entry.insert(0, delays['1'])
+ttk.Label(delays_frame, text="2:").grid(row=1, column=2)
+delay_2_entry = ttk.Entry(delays_frame, width=5)
+delay_2_entry.grid(row=1, column=3)
+delay_2_entry.insert(0, delays['2'])
+ttk.Label(delays_frame, text="3:").grid(row=2, column=0)
+delay_3_entry = ttk.Entry(delays_frame, width=5)
+delay_3_entry.grid(row=2, column=1)
+delay_3_entry.insert(0, delays['3'])
+ttk.Label(delays_frame, text="4:").grid(row=2, column=2)
+delay_4_entry = ttk.Entry(delays_frame, width=5)
+delay_4_entry.grid(row=2, column=3)
+delay_4_entry.insert(0, delays['4'])
+ttk.Button(delays_frame, text="Update Delays", command=update_delays).grid(row=3, column=0, columnspan=4)
+
+# Status label
+status_label = ttk.Label(root, text="Script Paused", font=("Arial", 12))
+status_label.grid(row=3, column=0, pady=10)
+
+# Start button
+start_button = ttk.Button(root, text="Start Script", command=start_script)
+start_button.grid(row=4, column=0, pady=10)
+
+# Run the GUI
+root.mainloop()
