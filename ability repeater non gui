@@ -1,0 +1,81 @@
+import keyboard
+import time
+
+# Global flag to control the loop
+is_paused = True  # Start in a paused state
+
+def send_keys():
+    """Function to send the key presses with the specified intervals."""
+    global is_paused
+
+    last_press_time_1 = 0  # Track the last time '1' was pressed
+    last_press_time_2 = 0  # Track the last time '2' was pressed
+    last_press_time_4 = 0  # Track the last time '4' was pressed
+
+    while True:
+        if not is_paused:
+            current_time = time.time()
+
+            # Initial sequence: Send '1', '2', '4' with 600ms delays when resuming
+            if last_press_time_1 == 0 and last_press_time_2 == 0 and last_press_time_4 == 0:
+
+                # Update the last press times for all keys
+                last_press_time_1 = current_time
+                last_press_time_2 = current_time
+                last_press_time_4 = current_time
+
+            # Regular interval for '1' every 30 seconds
+            if current_time - last_press_time_1 >= 30:
+                keyboard.send('1')
+                last_press_time_1 = current_time
+
+            # Regular interval for '2' every 30 seconds
+            if current_time - last_press_time_2 >= 30:
+                keyboard.send('2')
+                last_press_time_2 = current_time
+
+            # Regular interval for '4' every 48 seconds
+            if current_time - last_press_time_4 >= 48:
+                keyboard.send('4')
+                last_press_time_4 = current_time
+
+        # Sleep briefly to avoid high CPU usage
+        time.sleep(0.1)
+
+def toggle_script(key):
+    """Toggle the script on/off when the '6' key is pressed."""
+    global is_paused, last_press_time_1, last_press_time_2, last_press_time_4
+
+    if key.name == '6':
+        is_paused = not is_paused  # Toggle the pause state
+        if is_paused:
+            print("Script Paused")
+        else:
+            print("Script Resumed")
+            # Reset the timers when resuming
+            time.sleep(0.6)
+            keyboard.send('1')
+            time.sleep(0.6)
+            keyboard.send('2')
+            time.sleep(0.6)
+            keyboard.send('4')
+            time.sleep(0.6)
+            last_press_time_1 = 0
+            last_press_time_2 = 0
+            last_press_time_4 = 0
+
+def main():
+    print("Press '6' to start/pause the script.")
+    print("The script will initially send keys '1', '2', '4' with 600ms delay between them when started.")
+
+    # Register the toggle function for the '6' key
+    keyboard.on_press(toggle_script)
+
+    # Start the key-sending process
+    try:
+        send_keys()
+    except KeyboardInterrupt:
+        print("Script terminated by user.")
+
+if __name__ == "__main__":
+    main()
